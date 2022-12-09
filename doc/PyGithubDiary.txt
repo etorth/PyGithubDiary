@@ -1,0 +1,230 @@
+*PyGithubDiary.txt*
+
+==============================================================================
+CONTENTS                                                *PyGithubDiary-contents*
+
+    1. Intro ............................................. |PyGithubDiary-intro|
+    2. Usage ............................................. |PyGithubDiary-usage|
+    3. Configuration ............................. |PyGithubDiary-configuration|
+    4. Image ............................................. |PyGithubDiary-image|
+    5. Decode ........................................... |PyGithubDiary-decode|
+    6. Credits ......................................... |PyGithubDiary-credits|
+
+==============================================================================
+INTRO                                                      *PyGithubDiary-intro*
+
+PyGithubDiary is a vim plugin that utilizes the amazing PyGithub API for diary
+keeping on github.
+
+For PyGithub check >
+
+    - https://github.com/PyGithub/PyGithub.git
+
+For this plugin check >
+
+    - https://github.com/etorth/PyGithubDiary.git
+
+==============================================================================
+USAGE                                                      *PyGithubDiary-usage*
+
+This plugin adds follow commands >
+
+    :DiaryCreate                 " start diary
+    :DiarySubmit                 " submit current content
+    :DiaryViewHtml <diary-regex> " view specified diaries in html format
+    :DiaryViewText <diary-regex> " view specified diaries in text format
+
+Diary files are saved with name format >
+
+    yyyy.mm.dd.txt
+
+To view all diaries >
+
+    :DiaryViewHtml .*
+
+To view all diaries in 2003 >
+
+    :DiaryViewHtml 2003.*
+
+To view all diaries in July 2003 >
+
+    :DiaryViewHtml 2003.07.*
+
+To view all diaries for U.S. Independence Day >
+
+    :DiaryViewHtml .*.07.04
+
+An special case is that 'today' can be used to pull today's diary if exists
+
+    :DiaryViewHtml today
+
+==============================================================================
+CONFIGURATION                                      *PyGithubDiary-configuration*
+
+This plugin requires *python3* and *PyGithub* installed by >
+
+    pip3 install PyGithub
+
+Then create a minimal json configuration file >
+
+    $HOME/.diary.json
+
+Or for window >
+
+    C:\Users\<user-id>\.diary.json
+
+PyGithubDiary requires a github access token to access your github account. A
+minimal sample configruration is as following >
+
+    {
+        "github-token": "<your-github-token>"
+    }
+
+By default PyGithubDiary uses >
+
+    - https://github.com/<your-github-login>/diary.git
+
+as diary repository, PyGithubDiary creates it if not exists. You can customize
+to use a different one by add key *diary-repository* in the configuration >
+
+    {
+        "diary-repository": "<your-alternative-diary-repo>"
+    }
+
+By default PyGithubDiary uses a private diary repository. If you insist to use
+a public one, add key *allow-public-repository* in the configuration >
+
+    {
+        "allow-public-repository": true
+    }
+
+By default PyGithubDiary encrypts diary content based on base64 to provide basic
+security. To disable it, add key *use-base64-encryption* in the configuration >
+
+    {
+        "use-base64-encryption": false
+    }
+
+==============================================================================
+IMAGE                                                      *PyGithubDiary-image*
+
+PyGithubDiary supports to embed images to diary by converting images to base64
+string, use one single line in diary to insert image path as >
+
+    [[img <img-path>]]
+
+
+PyGithubDiary detects and converts image file to >
+
+    [[imgbase64 data:image;base64,<image-base64-text-stream>]]
+
+then command ':DiaryViewHtml' creates '<img>' tag with saved image content in
+generated html file
+
+For window path it's needed to use '\\' or '/' in image path >
+
+    [[img C:\\Users\\you\\Desktop\\embed.png]]
+
+or >
+
+    [[img C:/Users/you/Desktop/embed.png]]
+
+single back-slash '\' in path triggers unexpected codec error >
+
+    - https://stackoverflow.com/questions/1347791
+
+==============================================================================
+DECODE                                                    *PyGithubDiary-decode*
+
+PyGithubDiary uses base64 for limited encryption which only prevents malicious
+access if you leave with your github online. To decode your all diaries >
+
+    cd <your-scratch-area>
+    git clone https://github.com/<your-github-login>/diary.git
+    python3 decode.py <your-scratch-area>/diary
+
+This creates two new directories >
+
+    <your-scratch-area>/diary/encode
+    <your-scratch-area>/diary/decode
+
+
+script decode.py used above is as following >
+
+    import sys
+    import zlib
+    import glob
+    import base64
+    import pathlib
+    import collections
+
+
+    def base64_zip_encode(s: str) -> str:
+        return base64.b64encode(zlib.compress(s.encode('utf-8'))).decode('utf-8')
+
+
+    def base64_zip_decode(s: str) -> str:
+        return zlib.decompress(base64.b64decode(s.encode('utf-8'))).decode('utf-8')
+
+
+    def freq_remap(s: str) -> str:
+        freqs = collections.Counter(s).most_common()
+        order = [f[0] for f in freqs]
+
+        remap = dict(zip(order, order[::-1]))
+        return ''.join([remap[ch] for ch in s])
+
+
+    def encode(s: str) -> str:
+        return freq_remap(base64_zip_encode(s)) + 'E'
+
+
+    def decode(s: str) -> str:
+        if s[-1] == 'E':
+            return base64_zip_decode(freq_remap(s[0:-1]))
+        else:
+            return s[0:-1]
+
+
+    def convert(repo_path):
+        pathlib.Path(repo_path + '/encode').mkdir(parents=True, exist_ok=True)
+        pathlib.Path(repo_path + '/decode').mkdir(parents=True, exist_ok=True)
+
+        for file in glob.glob(repo_path + '/*.txt'):
+            with open(file, 'r') as f:
+                decoded_str = decode(f.read())
+                with open(repo_path + '/decode/' + pathlib.PurePath(file).name, 'w') as decode_f:
+                    decode_f.write(decoded_str)
+
+                with open(repo_path + '/encode/' + pathlib.PurePath(file).name, 'w') as encode_f:
+                    encode_f.write(encode(decoded_str))
+
+
+    if __name__ == '__main__':
+        convert(sys.argv[1])
+
+
+Because by default PyGithubDiary encodes all diaries to human unreadable utf-8
+strings, which makes commit log useless, if you want to purge all history >
+
+    cd <your-scratch-area>/diary
+    rm -rf .git
+
+    git init
+    git add .
+    git commit -m 'remove all history of commits'
+
+    git remote add origin https://github.com/<your-github-login>/diary.git
+    git push -u --force origin main
+
+The last command assumes your diary branch named as "main", it depends on your
+github default setup.
+
+==============================================================================
+CREDITS                                                  *PyGithubDiary-credits*
+
+For contributors, bugs and feature requests, check here: >
+
+    - https://github.com/etorth/PyGithubDiary.git
+
+vim:tw=78:ts=8:ft=help:norl:
