@@ -19,10 +19,14 @@ class Diary:
         with open(json_path) as json_file:
             self.config = json.load(json_file)
 
+            self.config.setdefault('timeout', 30)
             self.config.setdefault('log-path', None)
             self.config.setdefault('diary-repository', 'diary')
             self.config.setdefault('use-base64-encryption', True)
             self.config.setdefault('allow-public-repository', False)
+
+            if self.config['timeout'] <= 0:
+                self.config['timeout'] = 3600
 
             if self.config['log-path']:
                 self.logLock = threading.Lock()
@@ -32,7 +36,7 @@ class Diary:
             self.log('')
 
             try:
-                self.gh = github.Github(self.config['github-token'])
+                self.gh = github.Github(self.config['github-token'], timeout=self.config['timeout'])
             except github.BadCredentialsException:
                 raise ValueError('invalid github token')
 
