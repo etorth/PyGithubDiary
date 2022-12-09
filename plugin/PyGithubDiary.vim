@@ -40,6 +40,11 @@ endfunction
 
 function! s:DiaryFunc_submit()
     if exists('t:PyGithubDiary_tab_opened')
+        if wordcount()['bytes'] >= 100 * 1024 * 1024
+            echohl ErrorMsg | echomsg 'PyGithubDiary: can not submit file size greater than 100MBytes.' | echohl None
+            return
+        endif
+
         let l:py_cmd = printf('g_diaryInst.submit(%s%s%s)', '"""', join(getline(1, '$'), '\n'), '"""')
         call py3eval(l:py_cmd)
 
