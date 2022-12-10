@@ -82,7 +82,7 @@ function! s:DiaryFunc_submit()
         return
     endif
 
-    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s)', '"""', join(getline(1, '$'), '\n'), '"""')->py3eval()
+    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s)', '"""', substitute(join(getline(1, '$'), '\n'), '"', '\\"', 'g'), '"""')->py3eval()
     if !l:res[0]
         call s:Diary_echoError(l:res[1])
         return
