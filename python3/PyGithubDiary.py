@@ -314,7 +314,9 @@ class Diary:
 
                         matched_imgbase64 = pattern_imgbase64.match(striped_line)
                         if matched_imgbase64:
-                            html_lines.append('            <img alt="image" src="%s"/>' % matched_imgbase64.group(1))
+                            # tag <img> is inline level
+                            # means which doesn't start a new line, need an explicit <br/>
+                            html_lines.append('            <img alt="image" src="%s"/><br/>' % matched_imgbase64.group(1))
                         else:
                             html_lines.append('            <pre>%s</pre>' % html.escape(striped_line))
                     else:
