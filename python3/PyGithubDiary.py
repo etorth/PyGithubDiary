@@ -7,6 +7,7 @@ import base64
 import github
 import socket
 import datetime
+import traceback
 import threading
 import collections
 import concurrent.futures
@@ -53,7 +54,7 @@ class Diary:
         if self.config['log-path']:
             timestamp = self.now()
             lines = msg.splitlines()
-            
+
             # don't do strip for lines
             # if there are unexpected blankspaces, it means content itself needs update
 
@@ -84,15 +85,6 @@ class Diary:
 
     def title(self):
         return self.now() + " " + self.weekday() + " wrote:"
-
-
-    def create_content(self) -> str:
-        try:
-            today_file_content = self.repo_handler.get_contents(self.today_file_name())
-        except github.UnknownObjectException:
-            return self.title()
-        else:
-            return self.decode(self.get_file_handler_content(today_file_content)).strip() + "\n\n\n" + self.title()
 
 
     def pull_file_content(self, file_handler, name_pattern):
@@ -151,105 +143,6 @@ class Diary:
             return [f.result() for f in feats if f.result() is not None]
 
 
-    def view_text(self, regname) -> str:
-        text_lines = []
-        for name, content in self.pull_diaries(regname):
-            text_lines.append('<---------------------------%s----------------------------\n\n\n' % name[0:-4])
-            text_lines.append(content.rstrip())
-            text_lines.append('\n\n\n');
-
-        return ''.join(text_lines[0:-1])
-
-
-    def view_html(self, regname) -> str:
-        html_lines = []
-        html_lines.append('<!DOCTYPE html>')
-        html_lines.append('<html>')
-        html_lines.append('    <head>')
-        html_lines.append('        <meta charset="utf-8"/>')
-        html_lines.append('        <style>')
-        html_lines.append('            .diaryDiv {')
-        html_lines.append('                border: 2px outset red;')
-        html_lines.append('                background-color: lightblue;')
-        html_lines.append('            }')
-        html_lines.append('            .diaryDiv pre {')
-        html_lines.append('                white-space: pre-wrap;')
-        html_lines.append('                word-wrap: break-word;')
-        html_lines.append('            }')
-        html_lines.append('            .diaryDiv img {')
-        html_lines.append('                max-width: 100%;')
-        html_lines.append('                height: auto;')
-        html_lines.append('            }')
-        html_lines.append('        </style>')
-        html_lines.append('    </head>')
-        html_lines.append('    <body>')
-
-        pattern_imgbase64 = re.compile('^\s*\[\[imgbase64\s+?(\S+)\s*\]\]\s*$')
-        pattern_timestamp = re.compile('^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6} .* wrote:)\s*$')
-
-        for name, content in self.pull_diaries(regname):
-            last_empty = False
-            last_timestamp = None
-
-            has_content = False
-            div_started = False
-
-            for line in content.splitlines():
-                striped_line = line.rstrip()
-                matched_timestamp = pattern_timestamp.match(striped_line)
-
-                if matched_timestamp:
-                    last_timestamp = matched_timestamp.group(1)
-
-                elif striped_line:
-                    has_content = True
-                    if not div_started:
-                        html_lines.append('        <div class="diaryDiv">')
-                        html_lines.append('            <h2 style="text-align:center; color:brown">%s</h2>' % name[:-4])
-                        div_started = True
-
-                    if last_timestamp:
-                        html_lines.append('            <h3 style="color:blue;">%s</h3>' % last_timestamp)
-                    elif last_empty:
-                        html_lines.append('            <br/>')
-
-                    # if there are both timestamp and empty line
-                    # only prints timestamp
-
-                    last_empty = False
-                    last_timestamp = None
-
-                    matched_imgbase64 = pattern_imgbase64.match(striped_line)
-                    if matched_imgbase64:
-                        html_lines.append('            <img alt="image" src="%s"/>' % matched_imgbase64.group(1))
-                    else:
-                        html_lines.append('            <pre>%s</pre>' % html.escape(striped_line))
-                else:
-                    last_empty = True
-
-            if has_content:
-                html_lines.append('        </div>')
-
-        html_lines.append('    </body>')
-        html_lines.append('</html>')
-        return '\n'.join(html_lines)
-
-
-    def submit(self, content):
-        self.log(content)
-        blob = self.repo_handler.create_git_blob(self.encode(self.translate_content(content.strip())), "utf-8")
-        element = github.InputGitTreeElement(path=self.today_file_name(), mode='100644', type='blob', sha=blob.sha)
-
-        branch_sha = self.repo_handler.get_branch(self.repo_handler.default_branch).commit.sha
-        base_tree = self.repo_handler.get_git_tree(sha=branch_sha)
-
-        tree = self.repo_handler.create_git_tree([element], base_tree)
-        parent = self.repo_handler.get_git_commit(sha=branch_sha)
-
-        commit = self.repo_handler.create_git_commit('update from ' + socket.gethostname(), tree, [parent])
-        self.repo_handler.get_git_ref('heads/' + self.repo_handler.default_branch).edit(commit.sha)
-
-
     def translate_content(self, content: str) -> str:
         pattern_imgpath = re.compile('^\s*\[\[img\s+?(\S+)\s*\]\]\s*$')
         translated_lines = []
@@ -303,3 +196,136 @@ class Diary:
             return self.base64_zip_decode(self.freq_remap(s[0:-1]))
         else:
             return s[0:-1]
+
+    # exported functions, return type:
+    #
+    #     [bool]
+    #     [bool, str]
+    #
+    #     if bool is True , str can be omitted
+    #     if bool is False, str must be provided as error message
+    #
+    # catch any exception thrown and logs them if needed
+
+    def export_createContent(self) -> str:
+        try:
+            try:
+                today_file_content = self.repo_handler.get_contents(self.today_file_name())
+            except github.UnknownObjectException:
+                return [True, self.title()]
+            return [True, self.decode(self.get_file_handler_content(today_file_content)).strip() + "\n\n\n" + self.title()]
+        except Exception as e:
+            self.log(traceback.format_exc())
+            return [False, str(e)]
+
+
+    def export_submitContent(self, content):
+        self.log(content)
+        try:
+            blob = self.repo_handler.create_git_blob(self.encode(self.translate_content(content.strip())), "utf-8")
+            element = github.InputGitTreeElement(path=self.today_file_name(), mode='100644', type='blob', sha=blob.sha)
+
+            branch_sha = self.repo_handler.get_branch(self.repo_handler.default_branch).commit.sha
+            base_tree = self.repo_handler.get_git_tree(sha=branch_sha)
+
+            tree = self.repo_handler.create_git_tree([element], base_tree)
+            parent = self.repo_handler.get_git_commit(sha=branch_sha)
+
+            commit = self.repo_handler.create_git_commit('update from ' + socket.gethostname(), tree, [parent])
+            self.repo_handler.get_git_ref('heads/' + self.repo_handler.default_branch).edit(commit.sha)
+            return [True]
+        except Exception as e:
+            self.log(traceback.format_exc())
+            return [False, str(e)]
+
+
+    def export_viewText(self, regname) -> str:
+        try:
+            text_lines = []
+            for name, content in self.pull_diaries(regname):
+                text_lines.append('<---------------------------%s----------------------------\n\n\n' % name[0:-4])
+                text_lines.append(content.rstrip())
+                text_lines.append('\n\n\n');
+
+            return [True, ''.join(text_lines[0:-1])]
+        except Exception as e:
+            self.log(traceback.format_exc())
+            return [False, str(e)]
+
+
+    def export_viewHtml(self, regname) -> str:
+        try:
+            html_lines = []
+            html_lines.append('<!DOCTYPE html>')
+            html_lines.append('<html>')
+            html_lines.append('    <head>')
+            html_lines.append('        <meta charset="utf-8"/>')
+            html_lines.append('        <style>')
+            html_lines.append('            .diaryDiv {')
+            html_lines.append('                border: 2px outset red;')
+            html_lines.append('                background-color: lightblue;')
+            html_lines.append('            }')
+            html_lines.append('            .diaryDiv pre {')
+            html_lines.append('                white-space: pre-wrap;')
+            html_lines.append('                word-wrap: break-word;')
+            html_lines.append('            }')
+            html_lines.append('            .diaryDiv img {')
+            html_lines.append('                max-width: 100%;')
+            html_lines.append('                height: auto;')
+            html_lines.append('            }')
+            html_lines.append('        </style>')
+            html_lines.append('    </head>')
+            html_lines.append('    <body>')
+
+            pattern_imgbase64 = re.compile('^\s*\[\[imgbase64\s+?(\S+)\s*\]\]\s*$')
+            pattern_timestamp = re.compile('^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6} .* wrote:)\s*$')
+
+            for name, content in self.pull_diaries(regname):
+                last_empty = False
+                last_timestamp = None
+
+                has_content = False
+                div_started = False
+
+                for line in content.splitlines():
+                    striped_line = line.rstrip()
+                    matched_timestamp = pattern_timestamp.match(striped_line)
+
+                    if matched_timestamp:
+                        last_timestamp = matched_timestamp.group(1)
+
+                    elif striped_line:
+                        has_content = True
+                        if not div_started:
+                            html_lines.append('        <div class="diaryDiv">')
+                            html_lines.append('            <h2 style="text-align:center; color:brown">%s</h2>' % name[:-4])
+                            div_started = True
+
+                        if last_timestamp:
+                            html_lines.append('            <h3 style="color:blue;">%s</h3>' % last_timestamp)
+                        elif last_empty:
+                            html_lines.append('            <br/>')
+
+                        # if there are both timestamp and empty line
+                        # only prints timestamp
+
+                        last_empty = False
+                        last_timestamp = None
+
+                        matched_imgbase64 = pattern_imgbase64.match(striped_line)
+                        if matched_imgbase64:
+                            html_lines.append('            <img alt="image" src="%s"/>' % matched_imgbase64.group(1))
+                        else:
+                            html_lines.append('            <pre>%s</pre>' % html.escape(striped_line))
+                    else:
+                        last_empty = True
+
+                if has_content:
+                    html_lines.append('        </div>')
+
+            html_lines.append('    </body>')
+            html_lines.append('</html>')
+            return [True, '\n'.join(html_lines)]
+        except Exception as e:
+            self.log(traceback.format_exc())
+            return [False, str(e)]

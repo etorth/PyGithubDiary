@@ -1,9 +1,30 @@
 if !has('python3')
-    echohl ErrorMsg | echomsg 'PyGithubDiary: python3 is required but not available.' | echohl None
+    echohl ErrorMsg | echomsg 'PyGithubDiary: python3 is required but not available' | echohl None
     finish
 endif
 
+
+function! s:Diary_echoError(msg)
+    if type(a:msg) == v:t_string
+        echohl ErrorMsg | echomsg 'PyGithubDiary: ' . a:msg | echohl None
+    else
+        echohl ErrorMsg | echomsg 'PyGithubDiary: ' . string(a:msg) | echohl None
+    endif
+endfunction
+
+
 function! s:Diary_createDiaryInst()
+    " disable this check because of pynvim bug
+    "
+    "     https://github.com/neovim/pynvim/pull/496
+    "
+    " till now the fix has not been enabled
+
+    " if py3eval('"PyGithubDiary_testString"') != 'PyGithubDiary_testString'
+    "     call s:Diary_echoError('python interpreter does not work')
+    "     return v:false
+    " endif
+
 python3 << PY3_EOF
 
 import os
@@ -24,61 +45,93 @@ if 'g_diaryInst' not in locals():
     g_diaryInst = PyGithubDiary.Diary(jsonPath)
 
 PY3_EOF
+
+return v:true
 endfunction
 
+
 function! s:DiaryFunc_create()
-    call s:Diary_createDiaryInst()
+    if !s:Diary_createDiaryInst()
+        return
+    endif
+
+    let l:res = 'g_diaryInst.export_createContent()'->py3eval()
+    if !l:res[0]
+        call s:Diary_echoError(l:res[1])
+        return
+    endif
 
     tabnew
     norm gg
 
-    put! =py3eval('g_diaryInst.create_content()')
+    put! =l:res[1]
 
     norm G
     let t:PyGithubDiary_tab_opened = 1
 endfunction
 
+
 function! s:DiaryFunc_submit()
-    if exists('t:PyGithubDiary_tab_opened')
-        if wordcount()['bytes'] >= 100 * 1024 * 1024
-            echohl ErrorMsg | echomsg 'PyGithubDiary: can not submit file size greater than 100MBytes.' | echohl None
-            return
-        endif
+    if !exists('t:PyGithubDiary_tab_opened')
+        call s:Diary_echoError('current tab is not opened to submit diary')
+        return
+    endif
 
-        let l:py_cmd = printf('g_diaryInst.submit(%s%s%s)', '"""', join(getline(1, '$'), '\n'), '"""')
-        call py3eval(l:py_cmd)
+    if wordcount()['bytes'] >= 100 * 1024 * 1024
+        call s:Diary_echoError('can not submit file size greater than 100 mbytes')
+        return
+    endif
 
-        unlet t:PyGithubDiary_tab_opened
-        q!
-    else
-        echohl ErrorMsg | echomsg 'PyGithubDiary: current tab is not opened to submit diary.' | echohl None
-    end
+    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s)', '"""', join(getline(1, '$'), '\n'), '"""')->py3eval()
+    if !l:res[0]
+        call s:Diary_echoError(l:res[1])
+        return
+    endif
+
+    unlet t:PyGithubDiary_tab_opened
+    q!
 endfunction
+
 
 function! s:DiaryFunc_viewText(regfile)
-    call s:Diary_createDiaryInst()
+    if !s:Diary_createDiaryInst()
+        return
+    endif
 
     tabnew
     norm gg
 
-    let l:py_cmd = printf('g_diaryInst.view_text(%s%s%s)', '"""', a:regfile, '"""')
-    put! =py3eval(l:py_cmd)
+    let l:res = printf('g_diaryInst.export_viewText(%s%s%s)', '"""', a:regfile, '"""')->py3eval()
+    if !l:res[0]
+        call s:Diary_echoError(l:res[1])
+        return
+    endif
 
+    put! =l:res[1]
     norm gg
 endfunction
+
 
 function! s:DiaryFunc_viewHtml(regfile)
-    call s:Diary_createDiaryInst()
+    if !s:Diary_createDiaryInst()
+        return
+    endif
 
     tabnew
     norm gg
 
-    let l:py_cmd = printf('g_diaryInst.view_html(%s%s%s)', '"""', a:regfile, '"""')
-    put! =py3eval(l:py_cmd)
+    let l:res = printf('g_diaryInst.export_viewHtml(%s%s%s)', '"""', a:regfile, '"""')->py3eval()
+    if !l:res[0]
+        call s:Diary_echoError(l:res[1])
+        return
+    endif
+
+    put! =l:res[1]
+    norm gg
 
     set filetype=html
-    norm gg
 endfunction
+
 
 command!          DiaryCreate   :call s:DiaryFunc_create()
 command!          DiarySubmit   :call s:DiaryFunc_submit()
