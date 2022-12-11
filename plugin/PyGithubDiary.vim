@@ -30,23 +30,36 @@ python3 << PY3_EOF
 import os
 import PyGithubDiary
 
-if 'g_diaryInst' not in locals():
-    try:
-        homeDir = os.environ['HOME']
-    except KeyError:
-        homeDir = os.environ['HomePath']
-    except:
-        raise RuntimeError('No valid home path configured in os envs')
+try:
+    if 'g_diaryInst' not in locals():
+        try:
+            homeDir = os.environ['HOME']
+        except KeyError:
+            homeDir = os.environ['HomePath']
+        except:
+            raise RuntimeError('No valid home path configured in os envs')
 
-    jsonPath = homeDir + '/.diary.json'
-    if not os.path.isfile(jsonPath):
-        raise RuntimeError('Config file does not exist: %s' % jsonPath)
+        jsonPath = homeDir + '/.diary.json'
+        if not os.path.isfile(jsonPath):
+            raise RuntimeError('Config file does not exist: %s' % jsonPath)
 
-    g_diaryInst = PyGithubDiary.Diary(jsonPath)
+        g_diaryInst = PyGithubDiary.Diary(jsonPath)
+
+except Exception as e:
+    g_diaryInstError = str(e)
+
+else:
+    g_diaryInstError = None
 
 PY3_EOF
 
-return v:true
+    let l:err = py3eval('g_diaryInstError')
+    if l:err == v:null
+        return v:true
+    else
+        call s:Diary_echoError(l:err)
+        return v:false
+    endif
 endfunction
 
 
