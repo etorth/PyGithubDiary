@@ -71,6 +71,10 @@ class Diary:
         return datetime.date.today().strftime("%Y.%m.%d")
 
 
+    def yesterday(self) -> str:
+        return (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y.%m.%d")
+
+
     def today_file_name(self):
         return self.today() + ".txt"
 
@@ -130,6 +134,9 @@ class Diary:
         else:
             if regname == 'today':
                 regname = self.today()
+
+            elif regname == 'yesterday':
+                regname = self.yesterday()
 
             feats = []
             file_pattern = re.compile(regname)
