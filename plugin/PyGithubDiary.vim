@@ -86,6 +86,28 @@ function! s:DiaryFunc_open(filename)
     " vim tab does not have name
     " there is not a good way to detect if a diary is already open
 
+    redir => l:tabs_out
+    silent tabs
+    redir END
+
+    let l:tabs_out = split(l:tabs_out, '\n')
+    let l:tabs_len = len(l:tabs_out)
+    let l:tabs_map = {}
+
+    let l:c = 0
+    while l:c < l:tabs_len
+        if trim(l:tabs_out[l:c]) =~ '^Tab page \d\+$'
+            let l:tabs_map[trim(l:tabs_out[l:c + 1][3:])] = matchstr(l:tabs_out[l:c], '\d\+')
+        endif
+        let l:c += 1
+    endwhile
+
+    if has_key(l:tabs_map, a:filename)
+        call execute('tabnext ' . l:tabs_map[a:filename])
+        call s:Diary_echoError(printf('diary %s has already been opened', a:filename))
+        return
+    endif
+
     let l:res = printf('g_diaryInst.export_createContent("%s")', a:filename)->py3eval()
     if !l:res[0]
         call s:Diary_echoError(l:res[1])
