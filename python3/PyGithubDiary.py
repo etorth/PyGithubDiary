@@ -221,16 +221,26 @@ class Diary:
             return filenames
 
 
-    def is_valid_file_name(self, filename):
+    def is_valid_diary_file_name(self, filename):
         if not re.match('^\d{4}\.\d{2}\.\d{2}\.txt$', filename):
             return False
-
         try:
             datetime.datetime.strptime(filename, '%Y.%m.%d.txt')
         except ValueError:
             return False
         else:
             return filename <= self.today_file_name()
+
+
+    def normalize_diary_file_name(self, filename):
+        if isinstance(filename, str):
+            filename = filename.strip()
+
+        if not filename:
+            filename = self.today_file_name()
+
+        assert self.is_valid_diary_file_name(filename), filename
+        return filename
 
 
     # exported functions, return type:
@@ -245,19 +255,17 @@ class Diary:
 
     def export_listDiaries(self, argLead, cmdLine, cursorPos) -> str:
         try:
-            filenames = self.get_diary_files()
-            if self.today_file_name() not in filenames:
-                filenames.append(self.today_file_name())
-            return [True, sorted([file for file in filenames if file.startswith(argLead)], reverse=True)]
+            return [True, sorted([file for file in self.get_diary_files() if file.startswith(argLead)], reverse=True)]
         except Exception as e:
             self.log(traceback.format_exc())
             return [False, str(e)]
 
 
-    def export_createContent(self) -> str:
+    def export_createContent(self, filename=None) -> str:
         try:
+            filename = self.normalize_diary_file_name(filename)
             try:
-                today_file_content = self.repo_handler.get_contents(self.today_file_name())
+                today_file_content = self.repo_handler.get_contents(filename)
             except github.UnknownObjectException:
                 return [True, self.title()]
             return [True, self.decode(self.get_file_handler_content(today_file_content)).strip() + "\n\n\n" + self.title()]
@@ -269,14 +277,7 @@ class Diary:
     def export_submitContent(self, content, filename=None):
         self.log(content)
         try:
-            if isinstance(filename, str):
-                filename = filename.strip()
-
-            if not filename:
-                filename = self.today_file_name()
-
-            if not self.is_valid_file_name(filename):
-                raise ValueError('invalid diary file name %s' % filename)
+            filename = self.normalize_diary_file_name(filename)
 
             blob = self.repo_handler.create_git_blob(self.encode(self.translate_content(content.strip())), "utf-8")
             element = github.InputGitTreeElement(path=filename, mode='100644', type='blob', sha=blob.sha)

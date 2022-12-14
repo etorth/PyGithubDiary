@@ -63,7 +63,7 @@ PY3_EOF
 endfunction
 
 
-function! s:DiaryFunc_submitComplete(A, L, P)
+function! s:DiaryFunc_openComplete(A, L, P)
     if !s:Diary_createDiaryInst()
         return
     endif
@@ -78,18 +78,21 @@ function! s:DiaryFunc_submitComplete(A, L, P)
 endfunction
 
 
-function! s:DiaryFunc_create()
+function! s:DiaryFunc_open(filename)
     if !s:Diary_createDiaryInst()
         return
     endif
 
-    let l:res = 'g_diaryInst.export_createContent()'->py3eval()
+    " vim tab does not have name
+    " there is not a good way to detect if a diary is already open
+
+    let l:res = printf('g_diaryInst.export_createContent("%s")', a:filename)->py3eval()
     if !l:res[0]
         call s:Diary_echoError(l:res[1])
         return
     endif
 
-    tabnew
+    call execute('tabnew ' . a:filename)
     norm gg
 
     put! =l:res[1]
@@ -99,7 +102,7 @@ function! s:DiaryFunc_create()
 endfunction
 
 
-function! s:DiaryFunc_submit(filename)
+function! s:DiaryFunc_submit()
     if !exists('t:PyGithubDiary_tab_opened')
         call s:Diary_echoError('current tab is not opened to submit diary')
         return
@@ -110,7 +113,7 @@ function! s:DiaryFunc_submit(filename)
         return
     endif
 
-    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s, filename="%s")', '"""', substitute(join(getline(1, '$'), '\n'), '"', '\\"', 'g'), '"""', a:filename)->py3eval()
+    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s, filename="%s")', '"""', substitute(join(getline(1, '$'), '\n'), '"', '\\"', 'g'), '"""', bufname())->py3eval()
     if !l:res[0]
         call s:Diary_echoError(l:res[1])
         return
@@ -161,8 +164,10 @@ function! s:DiaryFunc_viewHtml(regfile)
 endfunction
 
 
-command! DiaryCreate :call s:DiaryFunc_create()
-command! -nargs=? -complete=customlist,s:DiaryFunc_submitComplete DiarySubmit :call s:DiaryFunc_submit(<q-args>)
+command! DiaryNew :call s:DiaryFunc_open(strftime('%Y.%m.%d.txt'))
+command! -nargs=1 -complete=customlist,s:DiaryFunc_openComplete DiaryOpen :call s:DiaryFunc_open(<q-args>)
+
+command! DiarySubmit :call s:DiaryFunc_submit()
 
 command! -nargs=1 DiaryViewText :call s:DiaryFunc_viewText(<q-args>)
 command! -nargs=1 DiaryViewHtml :call s:DiaryFunc_viewHtml(<q-args>)

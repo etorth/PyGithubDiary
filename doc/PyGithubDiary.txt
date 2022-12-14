@@ -29,7 +29,7 @@ USAGE                                                      *PyGithubDiary-usage*
 
 This plugin adds follow commands >
 
-    :DiaryCreate                 " start diary
+    :DiaryNew                    " create new diary
     :DiarySubmit                 " submit current content
     :DiaryViewHtml <diary-regex> " view specified diaries in html format
     :DiaryViewText <diary-regex> " view specified diaries in text format
