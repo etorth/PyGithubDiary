@@ -120,13 +120,18 @@ function! s:DiaryFunc_open(filename, newmode)
     put! =l:res[1]
 
     norm G
-    let t:PyGithubDiary_tab_opened = 1
+    let t:PyGithubDiary_tab_opened = a:filename
 endfunction
 
 
 function! s:DiaryFunc_submit()
     if !exists('t:PyGithubDiary_tab_opened')
         call s:Diary_echoError('current tab is not opened to submit diary')
+        return
+    endif
+
+    if t:PyGithubDiary_tab_opened != bufname()
+        call s:Diary_echoError(printf('rename diary name to %s and try again', t:PyGithubDiary_tab_opened))
         return
     endif
 
