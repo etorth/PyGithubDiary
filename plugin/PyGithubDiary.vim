@@ -78,7 +78,7 @@ function! s:DiaryFunc_openComplete(A, L, P)
 endfunction
 
 
-function! s:DiaryFunc_open(filename)
+function! s:DiaryFunc_open(filename, newmode)
     if !s:Diary_createDiaryInst()
         return
     endif
@@ -108,7 +108,7 @@ function! s:DiaryFunc_open(filename)
         return
     endif
 
-    let l:res = printf('g_diaryInst.export_createContent("%s")', a:filename)->py3eval()
+    let l:res = printf('g_diaryInst.export_getContent("%s", newmode=%s)', a:filename, a:newmode ? 'True' : 'False')->py3eval()
     if !l:res[0]
         call s:Diary_echoError(l:res[1])
         return
@@ -186,8 +186,8 @@ function! s:DiaryFunc_viewHtml(regfile)
 endfunction
 
 
-command! DiaryNew :call s:DiaryFunc_open(strftime('%Y.%m.%d.txt'))
-command! -nargs=1 -complete=customlist,s:DiaryFunc_openComplete DiaryOpen :call s:DiaryFunc_open(<q-args>)
+command! DiaryNew :call s:DiaryFunc_open(strftime('%Y.%m.%d.txt'), v:true)
+command! -nargs=1 -complete=customlist,s:DiaryFunc_openComplete DiaryOpen :call s:DiaryFunc_open(<q-args>, v:false)
 
 command! DiarySubmit :call s:DiaryFunc_submit()
 

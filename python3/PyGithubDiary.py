@@ -261,14 +261,22 @@ class Diary:
             return [False, str(e)]
 
 
-    def export_createContent(self, filename=None) -> str:
+    def export_getContent(self, filename=None, newmode=False) -> str:
         try:
             filename = self.normalize_diary_file_name(filename)
             try:
                 today_file_content = self.repo_handler.get_contents(filename)
             except github.UnknownObjectException:
-                return [True, self.title()]
-            return [True, self.decode(self.get_file_handler_content(today_file_content)).strip() + "\n\n\n" + self.title()]
+                if newmode:
+                    return [True, self.title()]
+                else:
+                    raise RuntimeError('diary %s does not exist' % filename)
+
+            decoded_content = self.decode(self.get_file_handler_content(today_file_content)).strip()
+            if newmode:
+                return [True, decoded_content + "\n\n\n" + self.title()]
+            else:
+                return [True, decoded_content]
         except Exception as e:
             self.log(traceback.format_exc())
             return [False, str(e)]
