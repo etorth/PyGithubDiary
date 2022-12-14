@@ -13,6 +13,13 @@ function! s:Diary_echoError(msg)
 endfunction
 
 
+function! s:Diary_fakeDiaryName(filename)
+    " create a file path which is not write-accessable
+    " this helps to prevent diary file get saved to local drive unexpectedly
+    return printf('- PyGithubDiary - / %s', trim(a:filename))
+endfunction
+
+
 function! s:Diary_getTabs()
     " vim tab does not have name
     " there is not a good way to detect if a diary is already open
@@ -124,7 +131,7 @@ function! s:DiaryFunc_open(filename, newmode)
     let l:keys = keys(l:tabs)
 
     for l:tab_idx in l:keys
-        if index(l:tabs[l:tab_idx], a:filename) >= 0
+        if index(l:tabs[l:tab_idx], s:Diary_fakeDiaryName(a:filename)) >= 0
             call execute('tabnext ' . l:tab_idx)
             call s:Diary_echoError(printf('diary %s has already been opened', a:filename))
             return
@@ -137,13 +144,13 @@ function! s:DiaryFunc_open(filename, newmode)
         return
     endif
 
-    call execute('tabnew ' . a:filename)
+    call execute('tabnew ' . s:Diary_fakeDiaryName(a:filename))
     norm gg
 
     put! =l:res[1]
 
     norm G
-    let t:PyGithubDiary_tab_opened = a:filename
+    let t:PyGithubDiary_tab_opened = s:Diary_fakeDiaryName(a:filename)
 endfunction
 
 
@@ -154,7 +161,7 @@ function! s:DiaryFunc_submit()
     endif
 
     if t:PyGithubDiary_tab_opened != bufname()
-        call s:Diary_echoError(printf('rename diary name to %s and try again', t:PyGithubDiary_tab_opened))
+        call s:Diary_echoError(printf('rename diary name to "%s" and try again', t:PyGithubDiary_tab_opened))
         return
     endif
 
@@ -163,7 +170,7 @@ function! s:DiaryFunc_submit()
         return
     endif
 
-    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s, filename="%s")', '"""', substitute(join(getline(1, '$'), '\n'), '"', '\\"', 'g'), '"""', bufname())->py3eval()
+    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s, filename="%s")', '"""', substitute(join(getline(1, '$'), '\n'), '"', '\\"', 'g'), '"""', trim(expand('%:t')))->py3eval()
     if !l:res[0]
         call s:Diary_echoError(l:res[1])
         return
