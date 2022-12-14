@@ -163,7 +163,7 @@ class Diary:
 
                         # didn't replace tailing '=' by '%3D', chrome looks still working
                         # but this web does replacement: https://greywyvern.com/code/php/binary2base64
-                        translated_lines.append('[[imgbase64 data:image;base64,%s]]' % base64.b64encode(f.read()).decode('utf-8'))
+                        translated_lines.append('[[imgbase64 path:%s data:image;base64,%s]]' % (re.sub(r'\s+', '_', matched_imgpath.group(1)), base64.b64encode(f.read()).decode('utf-8')))
                 except:
                     translated_lines.append(line)
             else:
@@ -333,7 +333,7 @@ class Diary:
             html_lines.append('    </head>')
             html_lines.append('    <body>')
 
-            pattern_imgbase64 = re.compile('^\s*\[\[imgbase64\s+?(\S+)\s*\]\]\s*$')
+            pattern_imgbase64 = re.compile('^\s*\[\[imgbase64\s+?(path:\S+)\s+?(data:\S+)\s*\]\]\s*$')
             pattern_timestamp = re.compile('^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6} .* wrote:)\s*$')
 
             for name, content in self.pull_diaries(regname):
@@ -372,7 +372,7 @@ class Diary:
                         if matched_imgbase64:
                             # tag <img> is inline level
                             # means which doesn't start a new line, need an explicit <br/>
-                            html_lines.append('            <img alt="image" src="%s"/><br/>' % matched_imgbase64.group(1))
+                            html_lines.append('            <img alt="%s" src="%s"/><br/>' % (matched_imgbase64.group(1), matched_imgbase64.group(2)))
                         else:
                             html_lines.append('            <pre>%s</pre>' % html.escape(striped_line))
                     else:
