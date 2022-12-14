@@ -63,6 +63,21 @@ PY3_EOF
 endfunction
 
 
+function! s:DiaryFunc_submitComplete(A, L, P)
+    if !s:Diary_createDiaryInst()
+        return
+    endif
+
+    let l:res = printf('g_diaryInst.export_listDiaries("%s", "%s", "%s")', a:A, a:L, a:P)->py3eval()
+    if !l:res[0]
+        call s:Diary_echoError(l:res[1])
+        return
+    endif
+
+    return l:res[1]
+endfunction
+
+
 function! s:DiaryFunc_create()
     if !s:Diary_createDiaryInst()
         return
@@ -84,7 +99,7 @@ function! s:DiaryFunc_create()
 endfunction
 
 
-function! s:DiaryFunc_submit()
+function! s:DiaryFunc_submit(filename)
     if !exists('t:PyGithubDiary_tab_opened')
         call s:Diary_echoError('current tab is not opened to submit diary')
         return
@@ -95,7 +110,7 @@ function! s:DiaryFunc_submit()
         return
     endif
 
-    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s)', '"""', substitute(join(getline(1, '$'), '\n'), '"', '\\"', 'g'), '"""')->py3eval()
+    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s, filename="%s")', '"""', substitute(join(getline(1, '$'), '\n'), '"', '\\"', 'g'), '"""', a:filename)->py3eval()
     if !l:res[0]
         call s:Diary_echoError(l:res[1])
         return
@@ -146,7 +161,8 @@ function! s:DiaryFunc_viewHtml(regfile)
 endfunction
 
 
-command!          DiaryCreate   :call s:DiaryFunc_create()
-command!          DiarySubmit   :call s:DiaryFunc_submit()
+command! DiaryCreate :call s:DiaryFunc_create()
+command! -nargs=? -complete=customlist,s:DiaryFunc_submitComplete DiarySubmit :call s:DiaryFunc_submit(<q-args>)
+
 command! -nargs=1 DiaryViewText :call s:DiaryFunc_viewText(<q-args>)
 command! -nargs=1 DiaryViewHtml :call s:DiaryFunc_viewHtml(<q-args>)
