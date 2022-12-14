@@ -94,12 +94,20 @@ function! s:DiaryFunc_open(filename, newmode)
     let l:tabs_len = len(l:tabs_out)
     let l:tabs_map = {}
 
-    let l:c = 0
-    while l:c < l:tabs_len
-        if trim(l:tabs_out[l:c]) =~ '^Tab page \d\+$'
-            let l:tabs_map[trim(l:tabs_out[l:c + 1][3:])] = matchstr(l:tabs_out[l:c], '\d\+')
+    let l:i = 0
+    let l:j = 0
+
+    let l:tab_regex = '^Tab page \d\+$'
+    while l:i < l:tabs_len
+        if trim(l:tabs_out[l:i]) =~ l:tab_regex
+            let l:j = l:i + 1
+            let l:tab_idx = matchstr(l:tabs_out[l:i], '\d\+')
+            while l:j < l:tabs_len && trim(l:tabs_out[l:j]) !~ l:tab_regex
+                let l:tabs_map[trim(l:tabs_out[l:j][3:])] = l:tab_idx
+                let l:j += 1
+            endwhile
         endif
-        let l:c += 1
+        let l:i = l:j
     endwhile
 
     if has_key(l:tabs_map, a:filename)
