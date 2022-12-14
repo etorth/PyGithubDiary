@@ -13,6 +13,43 @@ function! s:Diary_echoError(msg)
 endfunction
 
 
+function! s:Diary_getTabs()
+    " vim tab does not have name
+    " there is not a good way to detect if a diary is already open
+
+    redir => l:tabs_out
+    silent tabs
+    redir END
+
+    let l:tabs_out = split(l:tabs_out, '\n')
+    let l:tabs_len = len(l:tabs_out)
+    let l:tabs_map = {}
+
+    let l:i = 0
+    let l:j = 0
+
+    let l:tab_regex = '^Tab page \d\+$'
+    while l:i < l:tabs_len
+        if trim(l:tabs_out[l:i]) =~ l:tab_regex
+            let l:j = l:i + 1
+            let l:tab_idx = str2nr(matchstr(l:tabs_out[l:i], '\d\+'))
+
+            while l:j < l:tabs_len && trim(l:tabs_out[l:j]) !~ l:tab_regex
+                if !has_key(l:tabs_map, l:tab_idx)
+                    let l:tabs_map[l:tab_idx] = []
+                endif
+
+                let l:tabs_map[l:tab_idx] += [trim(l:tabs_out[l:j][3:])]
+                let l:j += 1
+            endwhile
+        endif
+        let l:i = l:j
+    endwhile
+
+    return l:tabs_map
+endfunction
+
+
 function! s:Diary_createDiaryInst()
     " disable this check because of pynvim bug
     "
@@ -83,38 +120,16 @@ function! s:DiaryFunc_open(filename, newmode)
         return
     endif
 
-    " vim tab does not have name
-    " there is not a good way to detect if a diary is already open
+    let l:tabs = s:Diary_getTabs()
+    let l:keys = keys(l:tabs)
 
-    redir => l:tabs_out
-    silent tabs
-    redir END
-
-    let l:tabs_out = split(l:tabs_out, '\n')
-    let l:tabs_len = len(l:tabs_out)
-    let l:tabs_map = {}
-
-    let l:i = 0
-    let l:j = 0
-
-    let l:tab_regex = '^Tab page \d\+$'
-    while l:i < l:tabs_len
-        if trim(l:tabs_out[l:i]) =~ l:tab_regex
-            let l:j = l:i + 1
-            let l:tab_idx = matchstr(l:tabs_out[l:i], '\d\+')
-            while l:j < l:tabs_len && trim(l:tabs_out[l:j]) !~ l:tab_regex
-                let l:tabs_map[trim(l:tabs_out[l:j][3:])] = l:tab_idx
-                let l:j += 1
-            endwhile
+    for l:tab_idx in l:keys
+        if index(l:tabs[l:tab_idx], a:filename) >= 0
+            call execute('tabnext ' . l:tab_idx)
+            call s:Diary_echoError(printf('diary %s has already been opened', a:filename))
+            return
         endif
-        let l:i = l:j
-    endwhile
-
-    if has_key(l:tabs_map, a:filename)
-        call execute('tabnext ' . l:tabs_map[a:filename])
-        call s:Diary_echoError(printf('diary %s has already been opened', a:filename))
-        return
-    endif
+    endfor
 
     let l:res = printf('g_diaryInst.export_getContent("%s", newmode=%s)', a:filename, a:newmode ? 'True' : 'False')->py3eval()
     if !l:res[0]
