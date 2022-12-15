@@ -19,8 +19,12 @@ endfunction
 
 
 function! s:Diary_createBuffer(filename)
-    execute printf('bad +0 %s', s:Diary_fakeDiaryName(a:filename))
-    execute printf('buffer %s', s:Diary_fakeDiaryName(a:filename))
+    if bufname() == '' && wordcount()['bytes'] == 0
+        execute printf('file! %s', a:filename)
+    else
+        execute printf('bad +0 %s', a:filename)
+        execute printf('buffer %s', a:filename)
+    endif
 
     " disable file write
     " :write doesn't work, while :write <filename> does work
@@ -116,7 +120,7 @@ function! s:DiaryFunc_open(filename, newmode)
         return
     endif
 
-    call s:Diary_createBuffer(a:filename)
+    call s:Diary_createBuffer(s:Diary_fakeDiaryName(a:filename))
 
     norm gg
     put! =l:res[1]
