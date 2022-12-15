@@ -103,7 +103,7 @@ function! s:DiaryFunc_open(filename, newmode)
 
     for l:ibuf in getbufinfo({'buflisted':1})
         let l:idx_found = stridx(l:ibuf['name'], s:Diary_fakeDiaryName(a:filename))
-        if l:idx_found >= 0 && l:idx_found + len(s:Diary_fakeDiaryName(a:filename)) == len(l:ibuf['name"])
+        if l:idx_found >= 0 && l:idx_found + len(s:Diary_fakeDiaryName(a:filename)) == len(l:ibuf['name'])
             execute printf('buffer %s', s:Diary_fakeDiaryName(a:filename))
             call s:Diary_echoError(printf('diary %s has already been opened', a:filename))
             return
