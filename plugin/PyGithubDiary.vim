@@ -136,7 +136,7 @@ function! s:DiaryFunc_submit()
     endif
 
     unlet b:PyGithubDiary_buffer_opened
-    q!
+    bdelete!
 endfunction
 
 
