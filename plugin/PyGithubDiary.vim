@@ -20,43 +20,6 @@ function! s:Diary_fakeDiaryName(filename)
 endfunction
 
 
-function! s:Diary_getTabs()
-    " vim tab does not have name
-    " there is not a good way to detect if a diary is already open
-
-    redir => l:tabs_out
-    silent tabs
-    redir END
-
-    let l:tabs_out = split(l:tabs_out, '\n')
-    let l:tabs_len = len(l:tabs_out)
-    let l:tabs_map = {}
-
-    let l:i = 0
-    let l:j = 0
-
-    let l:tab_regex = '^Tab page \d\+$'
-    while l:i < l:tabs_len
-        if trim(l:tabs_out[l:i]) =~ l:tab_regex
-            let l:j = l:i + 1
-            let l:tab_idx = str2nr(matchstr(l:tabs_out[l:i], '\d\+'))
-
-            while l:j < l:tabs_len && trim(l:tabs_out[l:j]) !~ l:tab_regex
-                if !has_key(l:tabs_map, l:tab_idx)
-                    let l:tabs_map[l:tab_idx] = []
-                endif
-
-                let l:tabs_map[l:tab_idx] += [trim(l:tabs_out[l:j][3:])]
-                let l:j += 1
-            endwhile
-        endif
-        let l:i = l:j
-    endwhile
-
-    return l:tabs_map
-endfunction
-
-
 function! s:Diary_createDiaryInst()
     " disable this check because of pynvim bug
     "
@@ -127,16 +90,11 @@ function! s:DiaryFunc_open(filename, newmode)
         return
     endif
 
-    let l:tabs = s:Diary_getTabs()
-    let l:keys = keys(l:tabs)
-
-    for l:tab_idx in l:keys
-        if index(l:tabs[l:tab_idx], s:Diary_fakeDiaryName(a:filename)) >= 0
-            call execute('tabnext ' . l:tab_idx)
-            call s:Diary_echoError(printf('diary %s has already been opened', a:filename))
-            return
-        endif
-    endfor
+    if len(filter(getbufinfo(), printf('stridx(v:val["name"], "%s") >= 0', s:Diary_fakeDiaryName(a:filename)))) > 0
+        execute printf('buffer %s', s:Diary_fakeDiaryName(a:filename))
+        call s:Diary_echoError(printf('diary %s has already been opened', a:filename))
+        return
+    endif
 
     let l:res = printf('g_diaryInst.export_getContent("%s", newmode=%s)', a:filename, a:newmode ? 'True' : 'False')->py3eval()
     if !l:res[0]
@@ -144,24 +102,25 @@ function! s:DiaryFunc_open(filename, newmode)
         return
     endif
 
-    call execute('tabnew ' . s:Diary_fakeDiaryName(a:filename))
-    norm gg
+    execute printf('bad +0 %s', s:Diary_fakeDiaryName(a:filename))
+    execute printf('buffer %s', s:Diary_fakeDiaryName(a:filename))
 
+    norm gg
     put! =l:res[1]
 
     norm G
-    let t:PyGithubDiary_tab_opened = s:Diary_fakeDiaryName(a:filename)
+    let b:PyGithubDiary_buffer_opened = s:Diary_fakeDiaryName(a:filename)
 endfunction
 
 
 function! s:DiaryFunc_submit()
-    if !exists('t:PyGithubDiary_tab_opened')
+    if !exists('b:PyGithubDiary_buffer_opened')
         call s:Diary_echoError('current tab is not opened to submit diary')
         return
     endif
 
-    if t:PyGithubDiary_tab_opened != bufname()
-        call s:Diary_echoError(printf('rename diary name to "%s" and try again', t:PyGithubDiary_tab_opened))
+    if b:PyGithubDiary_buffer_opened != bufname()
+        call s:Diary_echoError(printf('rename diary name to "%s" and try again', b:PyGithubDiary_buffer_opened))
         return
     endif
 
@@ -176,7 +135,7 @@ function! s:DiaryFunc_submit()
         return
     endif
 
-    unlet t:PyGithubDiary_tab_opened
+    unlet b:PyGithubDiary_buffer_opened
     q!
 endfunction
 
@@ -186,8 +145,10 @@ function! s:DiaryFunc_viewText(regfile)
         return
     endif
 
-    tabnew
-    norm gg
+    let l:bufname = strftime('%Y.%m.%d.%H.%M.%S.html')
+
+    execute printf('bad +0 %s', l:bufname)
+    execute printf('buffer %s', l:bufname)
 
     let l:res = printf('g_diaryInst.export_viewText(%s%s%s)', '"""', a:regfile, '"""')->py3eval()
     if !l:res[0]
@@ -205,8 +166,10 @@ function! s:DiaryFunc_viewHtml(regfile)
         return
     endif
 
-    tabnew
-    norm gg
+    let l:bufname = strftime('%Y.%m.%d.%H.%M.%S.html')
+
+    execute printf('bad +0 %s', l:bufname)
+    execute printf('buffer %s', l:bufname)
 
     let l:res = printf('g_diaryInst.export_viewHtml(%s%s%s)', '"""', a:regfile, '"""')->py3eval()
     if !l:res[0]
