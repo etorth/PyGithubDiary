@@ -22,6 +22,16 @@ function! s:Diary_fakeDiaryName(filename)
 endfunction
 
 
+function! s:Diary_createBuffer(filename)
+    execute printf('bad +0 %s', s:Diary_fakeDiaryName(a:filename))
+    execute printf('buffer %s', s:Diary_fakeDiaryName(a:filename))
+
+    setlocal buftype=nofile
+    setlocal bufhidden=hide
+    setlocal noswapfile
+endfunction
+
+
 function! s:Diary_createDiaryInst()
     " disable this check because of pynvim bug
     "
@@ -104,8 +114,7 @@ function! s:DiaryFunc_open(filename, newmode)
         return
     endif
 
-    execute printf('bad +0 %s', s:Diary_fakeDiaryName(a:filename))
-    execute printf('buffer %s', s:Diary_fakeDiaryName(a:filename))
+    call s:Diary_createBuffer(a:filename)
 
     norm gg
     put! =l:res[1]
@@ -147,10 +156,7 @@ function! s:DiaryFunc_viewText(regfile)
         return
     endif
 
-    let l:bufname = strftime('%Y.%m.%d.%H.%M.%S.html')
-
-    execute printf('bad +0 %s', l:bufname)
-    execute printf('buffer %s', l:bufname)
+    call s:Diary_createBuffer(strftime('view.%Y.%m.%d.%H.%M.%S.txt'))
 
     let l:res = printf('g_diaryInst.export_viewText(%s%s%s)', '"""', a:regfile, '"""')->py3eval()
     if !l:res[0]
@@ -168,10 +174,7 @@ function! s:DiaryFunc_viewHtml(regfile)
         return
     endif
 
-    let l:bufname = strftime('%Y.%m.%d.%H.%M.%S.html')
-
-    execute printf('bad +0 %s', l:bufname)
-    execute printf('buffer %s', l:bufname)
+    call s:Diary_createBuffer(strftime('view.%Y.%m.%d.%H.%M.%S.html'))
 
     let l:res = printf('g_diaryInst.export_viewHtml(%s%s%s)', '"""', a:regfile, '"""')->py3eval()
     if !l:res[0]
