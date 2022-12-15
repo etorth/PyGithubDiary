@@ -118,6 +118,10 @@ function! s:DiaryFunc_open(filename, newmode)
     norm gg
     put! =l:res[1]
 
+    if !a:newmode
+        set nomodifiable
+    endif
+
     norm G
     let b:PyGithubDiary_buffer_opened = s:Diary_fakeDiaryName(a:filename)
 endfunction
@@ -168,6 +172,8 @@ function! s:DiaryFunc_viewText(regfile)
 
     put! =l:res[1]
     norm gg
+
+    set nomodifiable
 endfunction
 
 
@@ -188,6 +194,7 @@ function! s:DiaryFunc_viewHtml(regfile)
     norm gg
 
     set filetype=html
+    set nomodifiable
 endfunction
 
 
