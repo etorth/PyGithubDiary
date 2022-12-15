@@ -119,7 +119,7 @@ function! s:DiaryFunc_open(filename, newmode)
     put! =l:res[1]
 
     if !a:newmode
-        set nomodifiable
+        setlocal nomodifiable
     endif
 
     norm G
@@ -173,7 +173,7 @@ function! s:DiaryFunc_viewText(regfile)
     put! =l:res[1]
     norm gg
 
-    set nomodifiable
+    setlocal nomodifiable
 endfunction
 
 
@@ -193,8 +193,8 @@ function! s:DiaryFunc_viewHtml(regfile)
     put! =l:res[1]
     norm gg
 
-    set filetype=html
-    set nomodifiable
+    setlocal filetype=html
+    setlocal nomodifiable
 endfunction
 
 
