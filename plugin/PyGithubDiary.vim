@@ -18,13 +18,16 @@ function! s:Diary_fakeDiaryName(filename)
     " this helps to prevent diary file get saved to local drive unexpectedly
     " vim script doesn't have a path normalization function, use python path module instead
     python3 import os
-    return printf('os.path.join("- PyGithubDiary - ", " %s")', a:filename)->py3eval()
+    return printf('os.path.join("- PyGithubDiary - ", " %s").replace("\\", "\\\\")', a:filename)->py3eval()
 endfunction
 
 
 function! s:Diary_createBuffer(filename)
     execute printf('bad +0 %s', s:Diary_fakeDiaryName(a:filename))
     execute printf('buffer %s', s:Diary_fakeDiaryName(a:filename))
+
+    " disable file write
+    " :write doesn't work, while :write <filename> does work
 
     setlocal buftype=nofile
     setlocal bufhidden=hide
