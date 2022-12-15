@@ -14,11 +14,7 @@ endfunction
 
 
 function! s:Diary_fakeDiaryName(filename)
-    " create a file path which is not write-accessable
-    " this helps to prevent diary file get saved to local drive unexpectedly
-    " vim script doesn't have a path normalization function, use python path module instead
-    python3 import os
-    return printf('os.path.join("- PyGithubDiary - ", " %s").replace("\\", "\\\\")', a:filename)->py3eval()
+    return printf('- PyGithubDiary - %s', a:filename)
 endfunction
 
 
