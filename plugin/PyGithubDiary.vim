@@ -139,14 +139,17 @@ function! s:DiaryFunc_submit()
         return
     endif
 
-    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s, filename="%s")', '"""', substitute(join(getline(1, '$'), '\n'), '"', '\\"', 'g'), '"""', trim(expand('%:t')))->py3eval()
+    let l:content = getline(1, '$')->join('\n')->substitute('"', '\\"', 'g')
+    let l:filename = expand('%:t')->trim()->matchstr('\d\{4\}\.\d\{2\}\.\d\{2\}\.txt')
+
+    let l:res = printf('g_diaryInst.export_submitContent(%s%s%s, filename="%s")', '"""', l:content, '"""', l:filename)->py3eval()
     if !l:res[0]
         call s:Diary_echoError(l:res[1])
         return
     endif
 
     unlet b:PyGithubDiary_buffer_opened
-    bdelete!
+    bwipeout!
 endfunction
 
 
