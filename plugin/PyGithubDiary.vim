@@ -101,11 +101,14 @@ function! s:DiaryFunc_open(filename, newmode)
         return
     endif
 
-    if len(filter(getbufinfo(), printf('stridx(v:val["name"], "%s") >= 0', s:Diary_fakeDiaryName(a:filename)))) > 0
-        execute printf('buffer %s', s:Diary_fakeDiaryName(a:filename))
-        call s:Diary_echoError(printf('diary %s has already been opened', a:filename))
-        return
-    endif
+    for l:ibuf in getbufinfo({'buflisted':1})
+        let l:idx_found = stridx(l:ibuf['name'], s:Diary_fakeDiaryName(a:filename))
+        if l:idx_found >= 0 && l:idx_found + len(s:Diary_fakeDiaryName(a:filename)) == len(l:ibuf['name"])
+            execute printf('buffer %s', s:Diary_fakeDiaryName(a:filename))
+            call s:Diary_echoError(printf('diary %s has already been opened', a:filename))
+            return
+        endif
+    endfor
 
     let l:res = printf('g_diaryInst.export_getContent("%s", newmode=%s)', a:filename, a:newmode ? 'True' : 'False')->py3eval()
     if !l:res[0]
