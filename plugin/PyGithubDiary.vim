@@ -18,6 +18,11 @@ function! s:Diary_fakeDiaryName(filename)
 endfunction
 
 
+function! s:Diary_getBufferContent()
+    return getline(1, '$')->join('\n')->substitute('"', '\\"', 'g')->substitute("'", "\\'", 'g')->substitute('\\', '\\\\', 'g')
+endfunction
+
+
 function! s:Diary_createBuffer(filename)
     if bufname() == '' && wordcount()['bytes'] == 0
         execute printf('file! %s', a:filename)
@@ -150,7 +155,7 @@ function! s:DiaryFunc_submit()
         return
     endif
 
-    let l:content = getline(1, '$')->join('\n')->substitute('"', '\\"', 'g')
+    let l:content = s:Diary_getBufferContent()
     let l:filename = expand('%:t')->trim()->matchstr('\d\{4\}\.\d\{2\}\.\d\{2\}\.txt')
 
     let l:res = printf('g_diaryInst.export_submitContent(%s%s%s, filename="%s")', '"""', l:content, '"""', l:filename)->py3eval()
