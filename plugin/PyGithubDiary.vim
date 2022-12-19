@@ -19,7 +19,7 @@ endfunction
 
 
 function! s:Diary_getBufferContent()
-    return getline(1, '$')->join('\n')->substitute('"', '\\"', 'g')->substitute("'", "\\'", 'g')->substitute('\\', '\\\\', 'g')
+    return getline(1, '$')->join('\n')->substitute('"', '\\"', 'g')->substitute("'", "\\'", 'g')
 endfunction
 
 
