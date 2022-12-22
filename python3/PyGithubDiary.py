@@ -239,7 +239,8 @@ class Diary:
         if not filename:
             filename = self.today_file_name()
 
-        assert self.is_valid_diary_file_name(filename), filename
+        if not self.is_valid_diary_file_name(filename):
+            raise ValueError('invalid diary file name: %s' % filename)
         return filename
 
 
