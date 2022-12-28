@@ -19,7 +19,7 @@ pip3 install PyGithub
 
 - This plugin adds two most-commonly-used commands:
 ```vim
-:DiaryCreate    " create a new unnamed tab and pull in any existing diary content
+:DiaryNew       " create a new unnamed tab and pull in any existing diary content
 :DiarySubmit    " submit current content
 ```
 
