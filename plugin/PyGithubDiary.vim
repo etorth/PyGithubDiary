@@ -218,5 +218,5 @@ command! DiarySubmit :call s:DiaryFunc_submit()
 command! -nargs=1 DiaryViewText :call s:DiaryFunc_viewText(<q-args>)
 command! -nargs=1 DiaryViewHtml :call s:DiaryFunc_viewHtml(<q-args>)
 
-hightlight! link DiaryTimestamp Title
+highlight! link DiaryTimestamp Title
 syntax match DiaryTimestamp /^\d\{4\}-\d\{2\}-\d\{2\} \d\{2\}:\d\{2\}:\d\{2\}\.\d\{6\} [MTWFS].\{-\}day wrote:$/
