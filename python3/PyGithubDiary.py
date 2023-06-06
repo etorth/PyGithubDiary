@@ -15,6 +15,10 @@ import concurrent.futures
 
 class Diary:
 
+    pattern_str_imgpath   = '^\s*\[\[img\s+?(\S+)\s*\]\]\s*$'
+    pattern_str_imgbase64 = '^\s*\[\[imgbase64\s+?(path:\S+)\s+?(data:\S+)\s*\]\]\s*$'
+    pattern_str_timestamp = '^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6} .* wrote:)\s*$'
+
 
     def __init__(self, json_path):
         with open(json_path) as json_file:
@@ -151,7 +155,7 @@ class Diary:
 
 
     def translate_content(self, content: str) -> str:
-        pattern_imgpath = re.compile('^\s*\[\[img\s+?(\S+)\s*\]\]\s*$')
+        pattern_imgpath = re.compile(__class__.pattern_str_imgpath)
         translated_lines = []
         for line in content.splitlines():
             matched_imgpath = pattern_imgpath.match(line)
@@ -308,9 +312,16 @@ class Diary:
     def export_viewText(self, regname) -> str:
         try:
             text_lines = []
+            pattern_imgbase64 = re.compile(__class__.pattern_str_imgbase64)
             for name, content in self.pull_diaries(regname):
                 text_lines.append('<---------------------------%s----------------------------\n\n\n' % name[0:-4])
-                text_lines.append(content.rstrip())
+                for line in content.splitlines():
+                    striped_line = line.rstrip()
+                    matched_imgbase64 = pattern_imgbase64.match(striped_line)
+                    if matched_imgbase64:
+                        text_lines.append(striped_line[0:80] + '...\n')
+                    else:
+                        text_lines.append(striped_line + '\n')
                 text_lines.append('\n\n\n');
 
             return [True, ''.join(text_lines[0:-1])]
@@ -343,8 +354,8 @@ class Diary:
             html_lines.append('    </head>')
             html_lines.append('    <body>')
 
-            pattern_imgbase64 = re.compile('^\s*\[\[imgbase64\s+?(path:\S+)\s+?(data:\S+)\s*\]\]\s*$')
-            pattern_timestamp = re.compile('^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6} .* wrote:)\s*$')
+            pattern_imgbase64 = re.compile(__class__.pattern_str_imgbase64)
+            pattern_timestamp = re.compile(__class__.pattern_str_timestamp)
 
             for name, content in self.pull_diaries(regname):
                 last_empty = False

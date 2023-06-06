@@ -1,0 +1,13 @@
+PyGithub	PyGithubDiary.txt	/*PyGithub*
+PyGithubDiary-configuration	PyGithubDiary.txt	/*PyGithubDiary-configuration*
+PyGithubDiary-contents	PyGithubDiary.txt	/*PyGithubDiary-contents*
+PyGithubDiary-credits	PyGithubDiary.txt	/*PyGithubDiary-credits*
+PyGithubDiary-decode	PyGithubDiary.txt	/*PyGithubDiary-decode*
+PyGithubDiary-image	PyGithubDiary.txt	/*PyGithubDiary-image*
+PyGithubDiary-intro	PyGithubDiary.txt	/*PyGithubDiary-intro*
+PyGithubDiary-usage	PyGithubDiary.txt	/*PyGithubDiary-usage*
+PyGithubDiary.txt	PyGithubDiary.txt	/*PyGithubDiary.txt*
+allow-public-repository	PyGithubDiary.txt	/*allow-public-repository*
+diary-repository	PyGithubDiary.txt	/*diary-repository*
+python3	PyGithubDiary.txt	/*python3*
+use-base64-encryption	PyGithubDiary.txt	/*use-base64-encryption*
