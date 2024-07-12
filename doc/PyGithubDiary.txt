@@ -210,7 +210,7 @@ strings, which makes commit log useless, if you want to purge all history >
     cd <your-scratch-area>/diary
     rm -rf .git
 
-    git init
+    git init -b main
     git add .
     git commit -m 'remove all history of commits'
 
