@@ -15,9 +15,9 @@ import concurrent.futures
 
 class Diary:
 
-    pattern_str_imgpath   = '^\s*\[\[img\s+?(\S+)\s*\]\]\s*$'
-    pattern_str_imgbase64 = '^\s*\[\[imgbase64\s+?(path:\S+)\s+?(data:\S+)\s*\]\]\s*$'
-    pattern_str_timestamp = '^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6} .* wrote:)\s*$'
+    pattern_str_imgpath   = r'^\s*\[\[img\s+?(\S+)\s*\]\]\s*$'
+    pattern_str_imgbase64 = r'^\s*\[\[imgbase64\s+?(path:\S+)\s+?(data:\S+)\s*\]\]\s*$'
+    pattern_str_timestamp = r'^\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6} .* wrote:)\s*$'
 
 
     def __init__(self, json_path):
