@@ -226,7 +226,7 @@ class Diary:
 
 
     def is_valid_diary_file_name(self, filename):
-        if not re.match('^\d{4}\.\d{2}\.\d{2}\.txt$', filename):
+        if not re.match(r'^\d{4}\.\d{2}\.\d{2}\.txt$', filename):
             return False
         try:
             datetime.datetime.strptime(filename, '%Y.%m.%d.txt')
