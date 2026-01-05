@@ -54,6 +54,11 @@ class Diary:
                 raise ValueError('%s/%s is a public repository, set \'allow-public-repository\' as true to bypass' % (self.gh.get_user().login, self.config['diary-repository']))
 
 
+    def __del__(self):
+        if hasattr(self, 'config') and self.config.get('log-path') and hasattr(self, 'logFile'):
+            self.logFile.close()
+
+
     def log(self, msg: str):
         if self.config['log-path']:
             timestamp = self.now()
@@ -292,11 +297,13 @@ class Diary:
         try:
             filename = self.normalize_diary_file_name(filename)
 
-            blob = self.repo_handler.create_git_blob(self.encode(self.translate_content(content.strip())), "utf-8")
-            element = github.InputGitTreeElement(path=filename, mode='100644', type='blob', sha=blob.sha)
+            encoded_content = self.encode(self.translate_content(content.strip()))
 
             branch_sha = self.repo_handler.get_branch(self.repo_handler.default_branch).commit.sha
             base_tree = self.repo_handler.get_git_tree(sha=branch_sha)
+
+            blob = self.repo_handler.create_git_blob(encoded_content, "utf-8")
+            element = github.InputGitTreeElement(path=filename, mode='100644', type='blob', sha=blob.sha)
 
             tree = self.repo_handler.create_git_tree([element], base_tree)
             parent = self.repo_handler.get_git_commit(sha=branch_sha)
