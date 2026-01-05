@@ -59,11 +59,8 @@ import PyGithubDiary
 
 try:
     if 'g_diaryInst' not in locals():
-        try:
-            homeDir = os.environ['HOME']
-        except KeyError:
-            homeDir = os.environ['HomePath']
-        except:
+        homeDir = os.environ.get('HOME') or os.environ.get('USERPROFILE')
+        if not homeDir:
             raise RuntimeError('No valid home path configured in os envs')
 
         jsonPath = homeDir + '/.diary.json'

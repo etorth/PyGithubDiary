@@ -24,7 +24,7 @@ class Diary:
         with open(json_path) as json_file:
             self.config = json.load(json_file)
 
-            self.config.setdefault('timeout', 30)
+            self.config.setdefault('timeout', 60)
             self.config.setdefault('log-path', None)
             self.config.setdefault('diary-repository', 'diary')
             self.config.setdefault('use-base64-encryption', True)
@@ -68,12 +68,14 @@ class Diary:
             # if there are unexpected blankspaces, it means content itself needs update
 
             self.logLock.acquire()
-            for line in lines:
-                if line:
-                    self.logFile.write('%s: %s\n' % (timestamp, line))
-                else:
-                    self.logFile.write('%s:\n' % timestamp)
-            self.logLock.release()
+            try:
+                for line in lines:
+                    if line:
+                        self.logFile.write('%s: %s\n' % (timestamp, line))
+                    else:
+                        self.logFile.write('%s:\n' % timestamp)
+            finally:
+                self.logLock.release()
 
 
     def today(self) -> str:
@@ -147,12 +149,10 @@ class Diary:
             elif regname == 'yesterday':
                 regname = self.yesterday()
 
-            feats = []
             file_pattern = re.compile(regname)
 
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                while len(file_handlers) > 0:
-                    feats.append(executor.submit(self.pull_file_content, file_handlers.pop(0), file_pattern))
+                feats = [executor.submit(self.pull_file_content, handler, file_pattern) for handler in file_handlers]
 
             # keep it if file exists but is empty
             # this ensures to keep an entry when file name matches
@@ -201,6 +201,10 @@ class Diary:
 
 
     def encode(self, s):
+        # NOTE: This is obfuscation, NOT cryptographic encryption
+        # The frequency remapping + base64 + compression can be easily reversed
+        # Anyone with repository access can decode the content
+        # Do not rely on this for security - use private repositories instead
         if self.config['use-base64-encryption']:
             return self.freq_remap(self.base64_zip_encode(s)) + 'E'
         else:
